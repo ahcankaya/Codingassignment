@@ -1,0 +1,59 @@
+pipeline {
+
+    agent any
+    stages {
+       /* stage('CreateDB') {
+			steps {
+				sh "docker build -t ahcankaya/spring-db -f resource/database/Dockerfile ."
+                 withCredentials([string(credentialsId: 'dockerpassword', variable: 'dockerpassword')]) {
+                    sh "docker login -u ahcankaya/spring-db -p ${dockerpassword} "
+                }
+				//create a new namespace(development) 
+                sh "kubectl apply -f resource/kubernetes/createnamespace.yaml"
+				//create deployment
+				sh "kubectl apply -f resource/kubernetes/deployment.yaml --namespace=development"
+				//create service
+				sh "kubectl apply -f resource/kubernetes/svc.yaml --namespace=development"
+				//create PersistentVolume
+                sh "kubectl apply -f resource/kubernetes/pv.yaml --namespace=development"
+				}
+			}*/
+        stage('BuildApp') {
+            /*agent { 
+				docker { image "maven:3-openjdk-8-slim" 
+						args '-v spring_cache:/root/.m2'   
+					}
+				}*/
+			steps {
+			    //build application
+				sh "mvn  clean verify"
+			}
+            post {
+				success {
+				//start the application
+					archiveArtifacts 'target/react-and-spring-data-rest-*.jar'
+				}
+			}
+        }    
+        stage ('Docker Build'){
+            steps {
+                sh "docker build -t ahcankaya/spring-rest:${BuildID} ."
+            }
+        }
+        stage("Push Docker"){
+            steps{
+                withCredentials([string(credentialsId: 'dockerpassword', variable: 'dockerpassword')]) {
+                    sh "docker login -u ahcankaya -p ${dockerpassword} "
+                }
+                sh "docker push ahcankaya/spring-rest:${BuildID}"
+            }
+        }
+        stage("Deploy to Kubernates system"){
+            steps{
+                sh "kubectl apply -f resource/kubernetes/createnamespace.yaml"
+                sh "kubectl apply -f resource/kubernetes/K8ssvc.yaml.yaml --namespace=development"
+				sh "kubectl apply -f resource/kubernetes/K8sdeployment.yaml.yaml --namespace=development"
+            }
+        }    
+    }
+}

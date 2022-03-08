@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: development
+spec:
+  replicas: 3
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: development
+      tier: frontend
+  template:
+    metadata:        
+      labels:
+        app: development
+        tier: frontend
+    spec:
+      containers:
+        - name: development
+          image: ahcankaya/spring-rest:latest
+          ports:
+          - containerPort: 7090
+
+   
+      
+
